@@ -13,8 +13,13 @@ GET     /message                    controllers.AsyncController.message
 GET     /assets/*file               controllers.Assets.versioned(path="/public", file: Asset)
 
 # Account routes
-POST    /accounts/login             controllers.AccountController.login
-POST    /accounts/logout            controllers.AccountController.logout
+POST    /users                      controllers.UserController.createAccount
+GET     /users/:id                  controllers.UserController.getInfo(id)
+POST    /users/:id/login            controllers.UserController.login(id)
+POST    /users/:id/logout           controllers.UserController.logout(id)
+PATCH   /users/:id/password         controllers.UserController.updatePassword(id)
+
+# User routes
 
 # Post routes
 POST    /posts                      controllers.PostController.createPost
