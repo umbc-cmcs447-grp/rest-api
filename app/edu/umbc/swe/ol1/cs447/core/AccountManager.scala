@@ -1,4 +1,4 @@
-package edu.umbc.swe.ol1.cs447
+package edu.umbc.swe.ol1.cs447.core
 
 import java.security.SecureRandom
 import javax.inject.{Inject, Singleton}
@@ -11,7 +11,7 @@ import play.api.db.slick.DatabaseConfigProvider
 import play.api.libs.concurrent.Execution.Implicits._
 
 @Singleton
-class AccountManager @Inject()(tokenManager: TokenManager, databaseConfigProvider: DatabaseConfigProvider) {
+class AccountManager @Inject()(tokenManager: TokenManager, dbConfProvider: DatabaseConfigProvider) {
   private val tokenSize = 24
   private val rand: SecureRandom = new SecureRandom
 
@@ -37,7 +37,7 @@ class AccountManager @Inject()(tokenManager: TokenManager, databaseConfigProvide
 
   def authenticate(id: String, password: String) = {
     for {
-      allowed <- databaseConfigProvider.get.db.run(authenticateUser(id, password))
+      allowed <- dbConfProvider.get.db.run(authenticateUser(id, password))
       if allowed
       token = {
           val t = genToken()

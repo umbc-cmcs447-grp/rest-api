@@ -14,5 +14,5 @@ class Posts(tag: Tag) extends Table[Post](tag, "POSTS") {
 }
 
 object Posts extends TableQuery[Posts](new Posts(_)) {
-  def withId(postId: String) = filter(_.postId === postId)
+  def withId(postId: String) = filter(_.postId === postId).result
 }
