@@ -1,7 +1,9 @@
 package edu.umbc.swe.ol1.cs447.obj
 
-case class ErrorMessage(message: String)
+import play.api.libs.json.Json
 
 object ErrorMessage {
-  val invalidCredentials = ErrorMessage("Invalid credentials")
+  def apply(message: String) = Json.obj("message" -> message)
+
+  val invalidCredentials = apply("Invalid credentials")
 }

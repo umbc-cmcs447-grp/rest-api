@@ -15,10 +15,9 @@ class AccountManager @Inject()(tokenManager: TokenManager, dbConfProvider: Datab
   private val tokenSize = 24
   private val rand: SecureRandom = new SecureRandom
 
-  private val dummyAccount = {
-    val dummyHash = BCrypt.hashpw(Sha512DigestUtils.shaHex("dummy"), BCrypt.gensalt())
-    Account("dummy12", dummyHash)
-  }
+  private val dummyAccount = Account("dummy12", newHashedPassword("dummy"))
+
+  def newHashedPassword(password: String): String = BCrypt.hashpw(Sha512DigestUtils.shaHex(password), BCrypt.gensalt())
 
   private def authenticateUser(id: String, password: String) = {
     for {
