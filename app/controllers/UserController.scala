@@ -32,7 +32,9 @@ class UserController @Inject()(accountManager: AccountManager,
 
   def createUser = Action.async(parse.json)(implicit request => {
     request.body.validate[NewUser] match {
-      case newUser: JsSuccess[NewUser] => newUserCheckFields(newUser.get)
+      case json: JsSuccess[NewUser] =>
+        val newUser = json.get
+        newUserCheckFields(newUser.copy(id = newUser.id.toUpperCase))
       case e: JsError => Future.successful(BadRequest(ErrorMessage.invalidBody))
     }
   })
@@ -44,7 +46,7 @@ class UserController @Inject()(accountManager: AccountManager,
       Future.successful(UnprocessableEntity(ErrorMessage("Fields cannot be empty")))
     } else if (!checkPasswordStrength(user.password)) {
       Future.successful(UnprocessableEntity(ErrorMessage.passwordNotStrongEnough))
-    } else newUserCheckExists(user.copy(id = user.id.toUpperCase))
+    } else newUserCheckExists(user)
   }
 
   private def checkPasswordStrength(password: String): Boolean = {
@@ -71,7 +73,7 @@ class UserController @Inject()(accountManager: AccountManager,
   }
 
   def getInfo(id: String) = Action.async(parse.empty)(implicit request => {
-    for (user <- getUser(id)) yield Ok(Json.toJson(user))
+    for (user <- getUser(id.toUpperCase)) yield Ok(Json.toJson(user))
   } recover {
     case _ => NotFound(ErrorMessage("User not found"))
   })
@@ -85,7 +87,7 @@ class UserController @Inject()(accountManager: AccountManager,
 
   def login(id: String) = Action.async(parse.json) { implicit request =>
     (request.body \ "password").validate[String] match {
-      case s: JsSuccess[String] => loginCheckCredentials(id, s.get)
+      case s: JsSuccess[String] => loginCheckCredentials(id.toUpperCase, s.get)
       case e: JsError => Future.successful(BadRequest(ErrorMessage("Missing password field")))
     }
   }
@@ -99,9 +101,10 @@ class UserController @Inject()(accountManager: AccountManager,
   }
 
   def logout(id: String) = Action.async(parse.empty)(implicit request => {
+    val idUpper = id.toUpperCase
     for {
-      _ <- tokenManager.authenticateRequestForUser(request.headers, id)
-      _ <- tokenManager.revokeToken(id)
+      _ <- tokenManager.authenticateRequestForUser(request.headers, idUpper)
+      _ <- tokenManager.revokeToken(idUpper)
     } yield NoContent
   } recover {
     case _ => Forbidden(ErrorMessage.invalidCredentials)
@@ -113,7 +116,7 @@ class UserController @Inject()(accountManager: AccountManager,
         val passwordUpdate = json.get
         if (!checkPasswordStrength(passwordUpdate.newPassword)) {
           Future.successful(UnprocessableEntity(ErrorMessage.passwordNotStrongEnough))
-        } else changePassword(id, passwordUpdate)
+        } else changePassword(id.toUpperCase, passwordUpdate)
       case e: JsError => Future.successful(BadRequest(ErrorMessage.invalidBody))
     }
   })
