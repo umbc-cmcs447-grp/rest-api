@@ -14,13 +14,12 @@ import scala.concurrent.duration._
 
 @Singleton
 class TokenManager @Inject() () {
-  private val inactivityExpiryMillis = HOURS.toMillis(1)
   private val maxExpiryMillis = DAYS.toMillis(1)
   private val authHeader = "X-NetBuz-Auth"
 
   private val cache: LoadingCache[String, Agent[Option[Token]]] =
     CacheBuilder.newBuilder()
-      .expireAfterAccess(1, HOURS)
+      .expireAfterAccess(2, HOURS)
       .build(new CacheLoader[String, Agent[Option[Token]]] {
         override def load(key: String): Agent[Option[Token]] = Agent(None)
       })
@@ -40,41 +39,11 @@ class TokenManager @Inject() () {
   def revokeToken(id: String): Future[Unit] = cache.get(id).alter(None).map(_ => Unit)
 
   def setToken(id: String, tokenString: String): Future[Option[Token]] = {
-    cache.get(id).alter(_ => {
-      val currentTime = System.currentTimeMillis
-      Some(Token(tokenString, currentTime + inactivityExpiryMillis, currentTime + maxExpiryMillis))
-    })
+    cache.get(id).alter(_ => Some(Token(tokenString, System.currentTimeMillis + maxExpiryMillis)))
   }
 
   def checkToken(id: String, tokenString: String): Boolean = {
     val option = cache.get(id)()
-    if (option.isEmpty) {
-      false
-    } else {
-      val token = option.get
-      val currentTime = System.currentTimeMillis
-      if (currentTime < token.maxExpiry && currentTime < token.inactivityExpiry) {
-        updateTokenTimes(id, tokenString, currentTime)
-        true
-      } else {
-        false
-      }
-    }
-  }
-
-  private def updateTokenTimes(id: String, tokenString: String, currentTime: Long): Unit = {
-    cache.get(id).alter(option => {
-      if (option.isDefined) {
-        val token = option.get
-        val possibleNewTime = currentTime + inactivityExpiryMillis
-        if (token.authToken == tokenString && possibleNewTime > token.inactivityExpiry) {
-          Some(token.copy(inactivityExpiry = possibleNewTime))
-        } else {
-          option
-        }
-      } else {
-        option
-      }
-    })
+    option.isDefined && System.currentTimeMillis < option.get.maxExpiry
   }
 }
