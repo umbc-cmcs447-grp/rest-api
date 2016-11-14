@@ -9,4 +9,16 @@ class SchemaSpec  extends PlaySpec with OneAppPerTest {
       Accounts.schema.createStatements.foreach(println)
     }
   }
+
+  "Users" should {
+    "print the table schema" in {
+      Users.schema.createStatements.foreach(println)
+    }
+  }
+
+  "Posts" should {
+    "print the table schema" in {
+      Posts.schema.createStatements.foreach(println)
+    }
+  }
 }
