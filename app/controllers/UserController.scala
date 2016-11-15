@@ -3,6 +3,7 @@ package controllers
 import java.util.regex.Pattern
 import javax.inject.{Inject, Singleton}
 
+import com.nulabinc.zxcvbn.Zxcvbn
 import edu.umbc.swe.ol1.cs447.core.{AccountManager, TokenManager}
 import edu.umbc.swe.ol1.cs447.obj.{ErrorMessage, NewUser, PasswordUpdate, ResourceLocated}
 import models.{Account, Accounts, User, Users}
@@ -26,6 +27,7 @@ class UserController @Inject()(accountManager: AccountManager,
   private val idPattern = Pattern.compile("[a-zA-Z]{2}\\d{5}")
   private val dbConf = dbConfProvider.get[JdbcProfile]
   private val db = dbConf.db
+  private val zxcvbn = new Zxcvbn
 
   import dbConf.driver.api._
 
@@ -48,10 +50,7 @@ class UserController @Inject()(accountManager: AccountManager,
     } else newUserCheckExists(user)
   }
 
-  private def checkPasswordStrength(password: String): Boolean = {
-    // TODO: Check password strength
-    true
-  }
+  private def checkPasswordStrength(password: String): Boolean = zxcvbn.measure(password).getScore > 2
 
   private def newUserCheckExists[_: Request](newUser: NewUser): Future[Result] = {
     for {

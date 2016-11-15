@@ -16,6 +16,7 @@ libraryDependencies ++= Seq(
   "com.jsuereth" %% "scala-arm" % "1.4",
   "com.typesafe.akka" %% "akka-agent" % "2.4.11",
   "org.xerial" % "sqlite-jdbc" % "3.8.11.2",
-  "org.springframework.security" % "spring-security-core" % "4.1.3.RELEASE"
+  "org.springframework.security" % "spring-security-core" % "4.1.3.RELEASE",
+  "com.nulab-inc" % "zxcvbn" % "1.2.0"
 )
 
