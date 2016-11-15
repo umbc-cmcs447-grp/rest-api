@@ -75,15 +75,10 @@ class UserController @Inject()(accountManager: AccountManager,
   def getInfo(id: String) = Action.async(parse.empty)(implicit request => {
     for (user <- getUser(id.toUpperCase)) yield Ok(Json.toJson(user))
   } recover {
-    case _ => NotFound(ErrorMessage.notFound)
+    case e: NoSuchElementException => NotFound(ErrorMessage.notFound)
   })
 
-  private def getUser(id: String): Future[User] = {
-    for {
-      userOpt <- db.run(Users.withId(id))
-      user <- FutureFromOption(userOpt)
-    } yield user
-  }
+  private def getUser(id: String): Future[User] = db.run(Users.withId(id))
 
   def login(id: String) = Action.async(parse.json) { implicit request =>
     (request.body \ "password").validate[String] match {
@@ -97,7 +92,7 @@ class UserController @Inject()(accountManager: AccountManager,
       token <- accountManager.authenticate(id, password)
     } yield Ok(Json.obj(authTokenField -> token))
   } recover {
-    case _ => Unauthorized(ErrorMessage.invalidCredentials)
+    case e: NoSuchElementException => Unauthorized(ErrorMessage.invalidCredentials)
   }
 
   def logout(id: String) = Action.async(parse.empty)(implicit request => {
@@ -107,7 +102,7 @@ class UserController @Inject()(accountManager: AccountManager,
       _ <- tokenManager.revokeToken(idUpper)
     } yield NoContent
   } recover {
-    case _ => Forbidden(ErrorMessage.invalidCredentials)
+    case e: NoSuchElementException => Forbidden(ErrorMessage.invalidCredentials)
   })
 
   def updatePassword(id: String) = Action.async(parse.json) { implicit request =>
@@ -128,6 +123,6 @@ class UserController @Inject()(accountManager: AccountManager,
       _ <- db.run(Accounts.update(newAccount))
     } yield Ok(Json.obj("message" -> "Password changed", authTokenField -> token))
   } recover {
-    case _ => Unauthorized(ErrorMessage.invalidCredentials)
+    case e: NoSuchElementException => Unauthorized(ErrorMessage.invalidCredentials)
   }
 }
