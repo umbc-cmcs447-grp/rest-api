@@ -9,7 +9,7 @@ import models.{Accounts, Post, Posts}
 import play.api.db.slick.DatabaseConfigProvider
 import play.api.libs.concurrent.Execution.Implicits._
 import play.api.libs.json._
-import play.api.mvc.{Action, Controller, Request, Result}
+import play.api.mvc.{Action, Request, Result}
 import slick.driver.JdbcProfile
 
 import scala.concurrent.Future
@@ -17,7 +17,7 @@ import scala.concurrent.Future
 @Singleton
 class PostController @Inject()(tokenManager: TokenManager,
                                idManager: IdManager,
-                               dbConfProvider: DatabaseConfigProvider) extends Controller {
+                               dbConfProvider: DatabaseConfigProvider) extends CustomController {
   private implicit val readsCategory = Reads.enumNameReads(Category)
   private implicit val readsStatus = Reads.enumNameReads(PostStatus)
   private implicit val readsNewPost = Json.reads[NewPost]
@@ -52,7 +52,7 @@ class PostController @Inject()(tokenManager: TokenManager,
         lastModified = timestamp)
       _ <- db.run(Posts += post)
       location = postLocation(postId)
-    } yield Created(ResourceLocated("Post created", location)).withHeaders("Location" -> location)
+    } yield Created(ResourceLocated("Post created", location)).withLocation(location)
   } recover {
     case e: NoSuchElementException => Forbidden(ErrorMessage.invalidCredentials)
   }
@@ -108,7 +108,7 @@ class PostController @Inject()(tokenManager: TokenManager,
     for {
       _ <- db.run(Posts.update(updatedPost))
       location = postLocation(post.postId)
-    } yield Ok(ResourceLocated("Post updated", location)).withHeaders("Location" -> location)
+    } yield Ok(ResourceLocated("Post updated", location)).withLocation(location)
   }
 
   def deletePost(id: String) = Action.async(parse.empty)(implicit request => {

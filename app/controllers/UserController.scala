@@ -5,12 +5,11 @@ import javax.inject.{Inject, Singleton}
 
 import edu.umbc.swe.ol1.cs447.core.{AccountManager, TokenManager}
 import edu.umbc.swe.ol1.cs447.obj.{ErrorMessage, NewUser, PasswordUpdate, ResourceLocated}
-import edu.umbc.swe.ol1.cs447.util.FutureFromOption
 import models.{Account, Accounts, User, Users}
 import play.api.db.slick.DatabaseConfigProvider
 import play.api.libs.concurrent.Execution.Implicits._
 import play.api.libs.json.{JsError, JsSuccess, Json}
-import play.api.mvc.{Action, Controller, Request, Result}
+import play.api.mvc.{Action, Request, Result}
 import slick.driver.JdbcProfile
 
 import scala.concurrent.Future
@@ -18,7 +17,7 @@ import scala.concurrent.Future
 @Singleton
 class UserController @Inject()(accountManager: AccountManager,
                                tokenManager: TokenManager,
-                               dbConfProvider: DatabaseConfigProvider) extends Controller {
+                               dbConfProvider: DatabaseConfigProvider) extends CustomController {
   private implicit val writesUser = Json.writes[User]
   private implicit val readsNewUser = Json.reads[NewUser]
   private implicit val readsPasswordUpdate = Json.reads[PasswordUpdate]
@@ -69,7 +68,7 @@ class UserController @Inject()(accountManager: AccountManager,
       _ <- db.run(Accounts += account)
       _ <- db.run(Users += user)
       location = request.host + "/users/" + newUser.id
-    } yield Created(ResourceLocated("Account created", location)).withHeaders("Location" -> location)
+    } yield Created(ResourceLocated("Account created", location)).withLocation(location)
   }
 
   def getInfo(id: String) = Action.async(parse.empty)(implicit request => {
