@@ -55,10 +55,12 @@ class UserController @Inject()(accountManager: AccountManager,
 
   private def newUserCheckExists[_: Request](newUser: NewUser): Future[Result] = {
     for {
-      user <- getUser(newUser.id)
-    } yield Forbidden(ErrorMessage("User already exists with ID: " + newUser.id))
-  } recoverWith {
-    case _ => createNewUser(newUser)
+      exists <- db.run(Accounts.filter(_.id === newUser.id).exists.result)
+      if !exists
+      res <- createNewUser(newUser)
+    } yield res
+  } recover {
+    case e: NoSuchElementException => Forbidden(ErrorMessage("User already exists with ID: " + newUser.id))
   }
 
   private def createNewUser(newUser: NewUser)(implicit request: Request[_]): Future[Result] = {
@@ -72,12 +74,10 @@ class UserController @Inject()(accountManager: AccountManager,
   }
 
   def getInfo(id: String) = Action.async(parse.empty)(implicit request => {
-    for (user <- getUser(id.toUpperCase)) yield Ok(Json.toJson(user))
+    for (user <- db.run(Users.withId(id.toUpperCase))) yield Ok(Json.toJson(user))
   } recover {
     case e: NoSuchElementException => NotFound(ErrorMessage.notFound)
   })
-
-  private def getUser(id: String): Future[User] = db.run(Users.withId(id))
 
   def login(id: String) = Action.async(parse.json) { implicit request =>
     (request.body \ "password").validate[String] match {
