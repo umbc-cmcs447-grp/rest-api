@@ -69,9 +69,11 @@ class UserController @Inject()(accountManager: AccountManager,
     for {
       _ <- db.run(Accounts += account)
       _ <- db.run(Users += user)
-      location = request.host + "/users/" + newUser.id
+      location = userLocation(newUser.id)
     } yield Created(ResourceLocated("Account created", location)).withLocation(location)
   }
+
+  private def userLocation(id: String)(implicit request: Request[_]) = request.host + "/users/" + id
 
   def getInfo(id: String) = Action.async(parse.empty)(implicit request => {
     for (user <- db.run(Users.withId(id.toUpperCase))) yield Ok(Json.toJson(user))
