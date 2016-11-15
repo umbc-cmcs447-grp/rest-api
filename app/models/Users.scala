@@ -12,5 +12,5 @@ class Users(tag: Tag) extends Table[User](tag, "USERS") {
 }
 
 object Users extends TableQuery[Users](new Users(_)) {
-  def withId(id: String) = filter(_.id === id).result.headOption
+  def withId(id: String) = filter(_.id === id).result.head
 }

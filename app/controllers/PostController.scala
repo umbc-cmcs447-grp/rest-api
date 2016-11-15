@@ -54,7 +54,7 @@ class PostController @Inject()(tokenManager: TokenManager,
       location = postLocation(postId)
     } yield Created(ResourceLocated("Post created", location)).withHeaders("Location" -> location)
   } recover {
-    case _ => Forbidden(ErrorMessage.invalidCredentials)
+    case e: NoSuchElementException => Forbidden(ErrorMessage.invalidCredentials)
   }
 
   private def postLocation(postId: String)(implicit request: Request[_]): String = request.host + "/posts/" + postId
@@ -64,7 +64,7 @@ class PostController @Inject()(tokenManager: TokenManager,
       post <- db.run(Posts.withId(id))
     } yield Ok(Json.toJson(post))
   } recover {
-    case _ => NotFound(ErrorMessage.notFound)
+    case e: NoSuchElementException => NotFound(ErrorMessage.notFound)
   })
 
   def updatePost(id: String) = Action.async(parse.json) { implicit request =>
@@ -84,7 +84,7 @@ class PostController @Inject()(tokenManager: TokenManager,
       res <- updatePostCheckAuth(post, update)
     } yield res
   } recover {
-    case _ => NotFound(ErrorMessage.notFound)
+    case e: NoSuchElementException => NotFound(ErrorMessage.notFound)
   }
 
   private def updatePostCheckAuth(post: Post, update: PostUpdate)(implicit request: Request[_]): Future[Result] = {
@@ -94,7 +94,7 @@ class PostController @Inject()(tokenManager: TokenManager,
       res <- doUpdatePost(post, update)
     } yield res
   } recover {
-    case _ => Forbidden(ErrorMessage.invalidCredentials)
+    case e: NoSuchElementException => Forbidden(ErrorMessage.invalidCredentials)
   }
 
   private def doUpdatePost[_: Request](post: Post, update: PostUpdate): Future[Result] = {
@@ -117,7 +117,7 @@ class PostController @Inject()(tokenManager: TokenManager,
       res <- doDeletePost(post)
     } yield res
   } recover {
-    case _ => NotFound(ErrorMessage.notFound)
+    case e: NoSuchElementException => NotFound(ErrorMessage.notFound)
   })
 
   private def doDeletePost(post: Post)(implicit request: Request[_]): Future[Result] = {
@@ -128,6 +128,6 @@ class PostController @Inject()(tokenManager: TokenManager,
       _ <- db.run(Posts.filter(_.postId === post.postId).delete)
     } yield NoContent
   } recover {
-    case _ => Forbidden(ErrorMessage.invalidCredentials)
+    case e: NoSuchElementException => Forbidden(ErrorMessage.invalidCredentials)
   }
 }
