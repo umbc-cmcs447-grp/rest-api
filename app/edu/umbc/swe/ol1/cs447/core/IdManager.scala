@@ -26,7 +26,7 @@ class IdManager @Inject()(dbConfProvider: DatabaseConfigProvider) {
     val bloomFilter = BloomFilter.create[Array[Byte]](Funnels.byteArrayFunnel(), 100000)
     for {
       seq <- db.run(Posts.map(_.postId).result)
-      seq.toStream
+      _ = seq.toStream
         .map(Base64.getUrlDecoder.decode)
         .foreach(bloomFilter.put)
     } yield bloomFilter

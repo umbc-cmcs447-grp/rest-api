@@ -6,7 +6,8 @@ import slick.lifted.Tag
 class Accounts(tag: Tag) extends Table[Account](tag, "ACCOUNTS") {
   def id = column[String]("ID", O.PrimaryKey, O.Length(Accounts.userIdLength, varying = false))
   def passwordHash = column[String]("PW_HASH_WITH_SALT")
-  def * = (id, passwordHash) <> (Account.tupled, Account.unapply)
+  def admin = column[Boolean]("ADMIN", O.Default(false))
+  def * = (id, passwordHash, admin) <> (Account.tupled, Account.unapply)
 }
 
 object Accounts extends TableQuery[Accounts](new Accounts(_)) {

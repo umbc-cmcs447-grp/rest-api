@@ -10,7 +10,10 @@ class Posts(tag: Tag) extends Table[Post](tag, "POSTS") {
   def title = column[String]("TITLE")
   def body = column[String]("BODY")
   def category = column[String]("CATEGORY")
-  def * = (postId, authorId, title, body, category) <> (Post.tupled, Post.unapply)
+  def status = column[String]("STATUS")
+  def created = column[Long]("CREATED")
+  def lastModified = column[Long]("LAST_MODIFIED")
+  def * = (postId, authorId, title, body, category, status, created, lastModified) <> (Post.tupled, Post.unapply)
 }
 
 object Posts extends TableQuery[Posts](new Posts(_)) {
@@ -21,5 +24,5 @@ object Posts extends TableQuery[Posts](new Posts(_)) {
     assert(postIdLengthBase64 % 4 == 0)
   }
 
-  def withId(postId: String) = filter(_.postId === postId).result
+  def withId(postId: String) = filter(_.postId === postId).result.head
 }
