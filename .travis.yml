@@ -5,3 +5,5 @@ jdk:
   - oraclejdk8
 env:
   - PLAY_VERSION=2.5.5
+before_install:
+  - mkdir $HOME/.netbuz
