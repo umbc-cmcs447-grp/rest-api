@@ -1,10 +1,10 @@
 package edu.umbc.swe.ol1.cs447.core
 
 import java.security.SecureRandom
+import java.util.Base64
 import javax.inject.{Inject, Singleton}
 
 import models.{Account, Accounts}
-import org.apache.commons.codec.binary.Hex
 import org.springframework.security.core.token.Sha512DigestUtils
 import org.springframework.security.crypto.bcrypt.BCrypt
 import play.api.db.slick.DatabaseConfigProvider
@@ -29,7 +29,7 @@ class AccountManager @Inject()(tokenManager: TokenManager, dbConfProvider: Datab
   private def genToken(): String = {
     val bytes = Array.ofDim[Byte](tokenSize)
     rand.nextBytes(bytes)
-    Hex.encodeHexString(bytes)
+    Base64.getUrlEncoder.encodeToString(bytes)
   }
 
   private def setTokenForUser(id: String, token: String) = tokenManager.setToken(id, token)
