@@ -1,0 +1,9 @@
+language: scala
+scala:
+  - 2.11.8
+jdk:
+  - oraclejdk8
+env:
+  - PLAY_VERSION=2.5.5
+before_install:
+  - mkdir $HOME/.netbuz
