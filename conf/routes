@@ -24,7 +24,7 @@ PATCH   /users/:id/password         controllers.UserController.updatePassword(id
 # Post routes
 POST    /posts                      controllers.PostController.createPost
 GET     /posts/:id                  controllers.PostController.getPost(id)
-PUT     /posts/:id                  controllers.PostController.updatePost(id)
+PATCH   /posts/:id                  controllers.PostController.updatePost(id)
 DELETE  /posts/:id                  controllers.PostController.deletePost(id)
 
 # Search routes

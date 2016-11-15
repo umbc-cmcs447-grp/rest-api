@@ -75,7 +75,7 @@ class UserController @Inject()(accountManager: AccountManager,
   def getInfo(id: String) = Action.async(parse.empty)(implicit request => {
     for (user <- getUser(id.toUpperCase)) yield Ok(Json.toJson(user))
   } recover {
-    case _ => NotFound(ErrorMessage("User not found"))
+    case _ => NotFound(ErrorMessage.notFound)
   })
 
   private def getUser(id: String): Future[User] = {
@@ -110,7 +110,7 @@ class UserController @Inject()(accountManager: AccountManager,
     case _ => Forbidden(ErrorMessage.invalidCredentials)
   })
 
-  def updatePassword(id: String) = Action.async(parse.json)(implicit request => {
+  def updatePassword(id: String) = Action.async(parse.json) { implicit request =>
     request.body.validate[PasswordUpdate] match {
       case json: JsSuccess[PasswordUpdate] =>
         val passwordUpdate = json.get
@@ -119,7 +119,7 @@ class UserController @Inject()(accountManager: AccountManager,
         } else changePassword(id.toUpperCase, passwordUpdate)
       case e: JsError => Future.successful(BadRequest(ErrorMessage.invalidBody))
     }
-  })
+  }
 
   private def changePassword(id: String, passwordUpdate: PasswordUpdate): Future[Result] = {
     for {
