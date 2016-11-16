@@ -25,7 +25,12 @@ class TokenManager @Inject() () {
       })
 
   def authenticateRequestForUser(headers: Headers, user: String): Future[Unit] = {
-    authenticateRequest(headers).filter(_ == user).map(_ => Unit)
+    for {
+      id <- authenticateRequest(headers)
+      if id == user
+    } yield {}
+  } recover {
+    case _: NoSuchElementException => throw new TokenAuthException
   }
 
   def authenticateRequest(headers: Headers): Future[String] = {
@@ -34,6 +39,8 @@ class TokenManager @Inject() () {
       (id, token) = authStr.split(":", 2) match {case Array(s1, s2) => (s1.toUpperCase, s2)}
       if checkToken(id, token)
     } yield id
+  } recover {
+    case _ => throw new TokenAuthException
   }
 
   def revokeToken(id: String): Future[Unit] = cache.get(id).alter(None).map(_ => Unit)
