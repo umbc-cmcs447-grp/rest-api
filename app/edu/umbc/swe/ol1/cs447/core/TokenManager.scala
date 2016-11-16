@@ -36,7 +36,7 @@ class TokenManager @Inject() () {
   def authenticateRequest(headers: Headers): Future[String] = {
     for {
       authStr <- headers.get(authHeader).toFuture
-      (id, token) = authStr.split(":", 2) match {case Array(s1, s2) => (s1.toUpperCase, s2)}
+      (id, token) = authStr.split(":", 2) match {case Array(s1, s2) => (s1.trim.toUpperCase, s2.trim)}
       if checkToken(id, token)
     } yield id
   } recover {
