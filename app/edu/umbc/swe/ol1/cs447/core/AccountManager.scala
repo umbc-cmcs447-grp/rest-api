@@ -2,6 +2,7 @@ package edu.umbc.swe.ol1.cs447.core
 
 import java.security.SecureRandom
 import java.util.Base64
+import java.util.regex.Pattern
 import javax.inject.{Inject, Singleton}
 
 import models.{Account, Accounts}
@@ -14,8 +15,10 @@ import play.api.libs.concurrent.Execution.Implicits._
 class AccountManager @Inject()(tokenManager: TokenManager, dbConfProvider: DatabaseConfigProvider) {
   private val tokenSize = 24
   private val rand: SecureRandom = new SecureRandom
-
   private val dummyAccount = Account("dummy12", newHashedPassword("dummy"))
+  private val idPattern = Pattern.compile("[a-zA-Z]{2}\\d{5}")
+
+  def isValidAccountId(id: String): Boolean = idPattern.matcher(id).matches
 
   def newHashedPassword(password: String): String = BCrypt.hashpw(Sha512DigestUtils.shaHex(password), BCrypt.gensalt())
 
