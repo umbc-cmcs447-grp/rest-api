@@ -4,7 +4,7 @@ import javax.inject.{Inject, Singleton}
 
 import akka.agent.Agent
 import com.google.common.cache.{CacheBuilder, CacheLoader, LoadingCache}
-import edu.umbc.swe.ol1.cs447.util.FutureFromOption
+import edu.umbc.swe.ol1.cs447.util.OptionToFuture._
 import play.api.libs.concurrent.Execution.Implicits._
 import play.api.mvc.Headers
 
@@ -25,15 +25,22 @@ class TokenManager @Inject() () {
       })
 
   def authenticateRequestForUser(headers: Headers, user: String): Future[Unit] = {
-    authenticateRequest(headers).filter(_ == user).map(_ => Unit)
+    for {
+      id <- authenticateRequest(headers)
+      if id == user
+    } yield {}
+  } recover {
+    case _: NoSuchElementException => throw new TokenAuthException
   }
 
   def authenticateRequest(headers: Headers): Future[String] = {
     for {
-      authStr <- FutureFromOption(headers.get(authHeader))
-      (id, token) = authStr.split(":", 2) match {case Array(s1, s2) => (s1.toUpperCase, s2)}
+      authStr <- headers.get(authHeader).toFuture
+      (id, token) = authStr.split(":", 2) match {case Array(s1, s2) => (s1.trim.toUpperCase, s2.trim)}
       if checkToken(id, token)
     } yield id
+  } recover {
+    case _ => throw new TokenAuthException
   }
 
   def revokeToken(id: String): Future[Unit] = cache.get(id).alter(None).map(_ => Unit)

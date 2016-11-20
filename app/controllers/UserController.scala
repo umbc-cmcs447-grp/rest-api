@@ -3,14 +3,14 @@ package controllers
 import java.util.regex.Pattern
 import javax.inject.{Inject, Singleton}
 
-import edu.umbc.swe.ol1.cs447.core.{AccountManager, TokenManager}
+import com.nulabinc.zxcvbn.Zxcvbn
+import edu.umbc.swe.ol1.cs447.core.{AccountManager, TokenAuthException, TokenManager}
 import edu.umbc.swe.ol1.cs447.obj.{ErrorMessage, NewUser, PasswordUpdate, ResourceLocated}
-import edu.umbc.swe.ol1.cs447.util.FutureFromOption
 import models.{Account, Accounts, User, Users}
 import play.api.db.slick.DatabaseConfigProvider
 import play.api.libs.concurrent.Execution.Implicits._
 import play.api.libs.json.{JsError, JsSuccess, Json}
-import play.api.mvc.{Action, Controller, Request, Result}
+import play.api.mvc.{Action, Request, Result}
 import slick.driver.JdbcProfile
 
 import scala.concurrent.Future
@@ -18,7 +18,7 @@ import scala.concurrent.Future
 @Singleton
 class UserController @Inject()(accountManager: AccountManager,
                                tokenManager: TokenManager,
-                               dbConfProvider: DatabaseConfigProvider) extends Controller {
+                               dbConfProvider: DatabaseConfigProvider) extends CustomController {
   private implicit val writesUser = Json.writes[User]
   private implicit val readsNewUser = Json.reads[NewUser]
   private implicit val readsPasswordUpdate = Json.reads[PasswordUpdate]
@@ -27,6 +27,7 @@ class UserController @Inject()(accountManager: AccountManager,
   private val idPattern = Pattern.compile("[a-zA-Z]{2}\\d{5}")
   private val dbConf = dbConfProvider.get[JdbcProfile]
   private val db = dbConf.db
+  private val zxcvbn = new Zxcvbn
 
   import dbConf.driver.api._
 
@@ -35,7 +36,7 @@ class UserController @Inject()(accountManager: AccountManager,
       case json: JsSuccess[NewUser] =>
         val newUser = json.get
         newUserCheckFields(newUser.copy(id = newUser.id.toUpperCase))
-      case e: JsError => Future.successful(BadRequest(ErrorMessage.invalidBody))
+      case _: JsError => Future.successful(BadRequest(ErrorMessage.invalidBody))
     }
   })
 
@@ -49,17 +50,16 @@ class UserController @Inject()(accountManager: AccountManager,
     } else newUserCheckExists(user)
   }
 
-  private def checkPasswordStrength(password: String): Boolean = {
-    // TODO: Check password strength
-    true
-  }
+  private def checkPasswordStrength(password: String): Boolean = zxcvbn.measure(password).getScore > 2
 
   private def newUserCheckExists[_: Request](newUser: NewUser): Future[Result] = {
     for {
-      user <- getUser(newUser.id)
-    } yield Forbidden(ErrorMessage("User already exists with ID: " + newUser.id))
-  } recoverWith {
-    case _ => createNewUser(newUser)
+      exists <- db.run(Accounts.filter(_.id === newUser.id).exists.result)
+      if !exists
+      res <- createNewUser(newUser)
+    } yield res
+  } recover {
+    case _: NoSuchElementException => Forbidden(ErrorMessage("User already exists with ID: " + newUser.id))
   }
 
   private def createNewUser(newUser: NewUser)(implicit request: Request[_]): Future[Result] = {
@@ -68,22 +68,22 @@ class UserController @Inject()(accountManager: AccountManager,
     for {
       _ <- db.run(Accounts += account)
       _ <- db.run(Users += user)
-      location = request.host + "/users/" + newUser.id
-    } yield Created(ResourceLocated("Account created", location)).withHeaders("Location" -> location)
+      location = userLocation(newUser.id)
+    } yield Created(ResourceLocated("Account created", location)).withLocation(location)
   }
 
-  def getInfo(id: String) = Action.async(parse.empty)(implicit request => {
-    for (user <- getUser(id.toUpperCase)) yield Ok(Json.toJson(user))
-  } recover {
-    case e: NoSuchElementException => NotFound(ErrorMessage.notFound)
-  })
+  private def userLocation(id: String)(implicit request: Request[_]) = request.host + "/users/" + id
 
-  private def getUser(id: String): Future[User] = db.run(Users.withId(id))
+  def getInfo(id: String) = Action.async(parse.empty)(implicit request => {
+    for (user <- db.run(Users.withId(id.toUpperCase))) yield Ok(Json.toJson(user))
+  } recover {
+    case _: NoSuchElementException => NotFound(ErrorMessage.notFound)
+  })
 
   def login(id: String) = Action.async(parse.json) { implicit request =>
     (request.body \ "password").validate[String] match {
-      case s: JsSuccess[String] => loginCheckCredentials(id.toUpperCase, s.get)
-      case e: JsError => Future.successful(BadRequest(ErrorMessage("Missing password field")))
+      case json: JsSuccess[String] => loginCheckCredentials(id.toUpperCase, json.get)
+      case _: JsError => Future.successful(BadRequest(ErrorMessage("Missing password field")))
     }
   }
 
@@ -92,7 +92,7 @@ class UserController @Inject()(accountManager: AccountManager,
       token <- accountManager.authenticate(id, password)
     } yield Ok(Json.obj(authTokenField -> token))
   } recover {
-    case e: NoSuchElementException => Unauthorized(ErrorMessage.invalidCredentials)
+    case _: NoSuchElementException => Unauthorized(ErrorMessage.invalidCredentials)
   }
 
   def logout(id: String) = Action.async(parse.empty)(implicit request => {
@@ -102,7 +102,7 @@ class UserController @Inject()(accountManager: AccountManager,
       _ <- tokenManager.revokeToken(idUpper)
     } yield NoContent
   } recover {
-    case e: NoSuchElementException => Forbidden(ErrorMessage.invalidCredentials)
+    case _: TokenAuthException => Forbidden(ErrorMessage.invalidCredentials)
   })
 
   def updatePassword(id: String) = Action.async(parse.json) { implicit request =>
@@ -123,6 +123,6 @@ class UserController @Inject()(accountManager: AccountManager,
       _ <- db.run(Accounts.update(newAccount))
     } yield Ok(Json.obj("message" -> "Password changed", authTokenField -> token))
   } recover {
-    case e: NoSuchElementException => Unauthorized(ErrorMessage.invalidCredentials)
+    case _: NoSuchElementException => Unauthorized(ErrorMessage.invalidCredentials)
   }
 }

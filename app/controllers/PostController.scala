@@ -3,13 +3,13 @@ package controllers
 import javax.inject.{Inject, Singleton}
 
 import edu.umbc.swe.ol1.cs447.core.posts.{Category, PostStatus}
-import edu.umbc.swe.ol1.cs447.core.{IdManager, TokenManager}
+import edu.umbc.swe.ol1.cs447.core.{IdManager, TokenAuthException, TokenManager}
 import edu.umbc.swe.ol1.cs447.obj.{ErrorMessage, NewPost, PostUpdate, ResourceLocated}
 import models.{Accounts, Post, Posts}
 import play.api.db.slick.DatabaseConfigProvider
 import play.api.libs.concurrent.Execution.Implicits._
 import play.api.libs.json._
-import play.api.mvc.{Action, Controller, Request, Result}
+import play.api.mvc.{Action, Request, Result}
 import slick.driver.JdbcProfile
 
 import scala.concurrent.Future
@@ -17,7 +17,7 @@ import scala.concurrent.Future
 @Singleton
 class PostController @Inject()(tokenManager: TokenManager,
                                idManager: IdManager,
-                               dbConfProvider: DatabaseConfigProvider) extends Controller {
+                               dbConfProvider: DatabaseConfigProvider) extends CustomController {
   private implicit val readsCategory = Reads.enumNameReads(Category)
   private implicit val readsStatus = Reads.enumNameReads(PostStatus)
   private implicit val readsNewPost = Json.reads[NewPost]
@@ -32,7 +32,7 @@ class PostController @Inject()(tokenManager: TokenManager,
   def createPost = Action.async(parse.json) { implicit request =>
     request.body.validate[NewPost] match {
       case json: JsSuccess[NewPost] => createNewPost(json.get)
-      case e: JsError => Future.successful(BadRequest(ErrorMessage.invalidBody))
+      case _: JsError => Future.successful(BadRequest(ErrorMessage.invalidBody))
     }
   }
 
@@ -52,9 +52,9 @@ class PostController @Inject()(tokenManager: TokenManager,
         lastModified = timestamp)
       _ <- db.run(Posts += post)
       location = postLocation(postId)
-    } yield Created(ResourceLocated("Post created", location)).withHeaders("Location" -> location)
+    } yield Created(ResourceLocated("Post created", location)).withLocation(location)
   } recover {
-    case e: NoSuchElementException => Forbidden(ErrorMessage.invalidCredentials)
+    case _: TokenAuthException => Forbidden(ErrorMessage.invalidCredentials)
   }
 
   private def postLocation(postId: String)(implicit request: Request[_]): String = request.host + "/posts/" + postId
@@ -64,7 +64,7 @@ class PostController @Inject()(tokenManager: TokenManager,
       post <- db.run(Posts.withId(id))
     } yield Ok(Json.toJson(post))
   } recover {
-    case e: NoSuchElementException => NotFound(ErrorMessage.notFound)
+    case _: NoSuchElementException => NotFound(ErrorMessage.notFound)
   })
 
   def updatePost(id: String) = Action.async(parse.json) { implicit request =>
@@ -84,7 +84,7 @@ class PostController @Inject()(tokenManager: TokenManager,
       res <- updatePostCheckAuth(post, update)
     } yield res
   } recover {
-    case e: NoSuchElementException => NotFound(ErrorMessage.notFound)
+    case _: NoSuchElementException => NotFound(ErrorMessage.notFound)
   }
 
   private def updatePostCheckAuth(post: Post, update: PostUpdate)(implicit request: Request[_]): Future[Result] = {
@@ -94,7 +94,7 @@ class PostController @Inject()(tokenManager: TokenManager,
       res <- doUpdatePost(post, update)
     } yield res
   } recover {
-    case e: NoSuchElementException => Forbidden(ErrorMessage.invalidCredentials)
+    case _: TokenAuthException => Forbidden(ErrorMessage.invalidCredentials)
   }
 
   private def doUpdatePost[_: Request](post: Post, update: PostUpdate): Future[Result] = {
@@ -108,7 +108,7 @@ class PostController @Inject()(tokenManager: TokenManager,
     for {
       _ <- db.run(Posts.update(updatedPost))
       location = postLocation(post.postId)
-    } yield Ok(ResourceLocated("Post updated", location)).withHeaders("Location" -> location)
+    } yield Ok(ResourceLocated("Post updated", location)).withLocation(location)
   }
 
   def deletePost(id: String) = Action.async(parse.empty)(implicit request => {
@@ -117,7 +117,7 @@ class PostController @Inject()(tokenManager: TokenManager,
       res <- doDeletePost(post)
     } yield res
   } recover {
-    case e: NoSuchElementException => NotFound(ErrorMessage.notFound)
+    case _: NoSuchElementException => NotFound(ErrorMessage.notFound)
   })
 
   private def doDeletePost(post: Post)(implicit request: Request[_]): Future[Result] = {
@@ -128,6 +128,6 @@ class PostController @Inject()(tokenManager: TokenManager,
       _ <- db.run(Posts.filter(_.postId === post.postId).delete)
     } yield NoContent
   } recover {
-    case e: NoSuchElementException => Forbidden(ErrorMessage.invalidCredentials)
+    case _: NoSuchElementException => Forbidden(ErrorMessage.invalidCredentials)
   }
 }
