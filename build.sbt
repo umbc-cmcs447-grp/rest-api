@@ -1,4 +1,4 @@
-name := """project"""
+name := """netbuz-rest"""
 
 version := "1.0.0-SNAPSHOT"
 
