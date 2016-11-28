@@ -24,7 +24,6 @@ class UserController @Inject()(accountManager: AccountManager,
   private implicit val readsPasswordUpdate = Json.reads[PasswordUpdate]
 
   private val authTokenField = "authToken"
-  private val idPattern = Pattern.compile("[a-zA-Z]{2}\\d{5}")
   private val dbConf = dbConfProvider.get[JdbcProfile]
   private val db = dbConf.db
   private val zxcvbn = new Zxcvbn
@@ -41,7 +40,7 @@ class UserController @Inject()(accountManager: AccountManager,
   })
 
   private def newUserCheckFields[_: Request](user: NewUser): Future[Result] = {
-    if (!idPattern.matcher(user.id).matches()) {
+    if (!accountManager.isValidAccountId(user.id)) {
       Future.successful(UnprocessableEntity(ErrorMessage("Invalid ID")))
     } else if (user.firstName.isEmpty || user.lastName.isEmpty || user.password.isEmpty) {
       Future.successful(UnprocessableEntity(ErrorMessage("Fields cannot be empty")))

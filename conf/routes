@@ -28,5 +28,4 @@ PATCH   /posts/:id                  controllers.PostController.updatePost(id)
 DELETE  /posts/:id                  controllers.PostController.deletePost(id)
 
 # Search routes
-GET     /search/:category           controllers.SearchController.search(category)
-GET     /search/:category/:userId   controllers.SearchController.searchWithUser(category, userId)
+GET     /search/posts               controllers.SearchController.searchPosts
