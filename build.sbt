@@ -9,6 +9,7 @@ scalaVersion := "2.11.8"
 libraryDependencies ++= Seq(
   cache,
   ws,
+  filters,
   "org.scalatestplus.play" %% "scalatestplus-play" % "1.5.1" % Test,
   "com.typesafe.slick" %% "slick" % "3.1.1",
   "com.typesafe.play" %% "play-slick" % "2.0.0",
