@@ -106,7 +106,7 @@ class PostController @Inject()(tokenManager: TokenManager,
       lastModified = System.currentTimeMillis
     )
     for {
-      _ <- db.run(Posts.update(updatedPost))
+      _ <- db.run(Posts.filter(_.postId === post.postId).update(updatedPost))
       location = postLocation(post.postId)
     } yield Ok(ResourceLocated("Post updated", location)).withLocation(location)
   }
