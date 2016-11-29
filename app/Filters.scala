@@ -1,9 +1,8 @@
 import javax.inject._
 
-import filters.ExampleFilter
+import filters.CustomCORSFilter
 import play.api._
 import play.api.http.DefaultHttpFilters
-import play.filters.cors.CORSFilter
 
 /**
   * This class configures filters that run on every request. This
@@ -14,12 +13,10 @@ import play.filters.cors.CORSFilter
   * from a different class by adding a `play.http.filters` setting to
   * the `application.conf` configuration file.
   *
-  * @param env           Basic environment settings for the current application.
-  * @param exampleFilter A demonstration filter that adds a header to
-  *                      each response.
+  * @param env        Basic environment settings for the current application.
+  * @param corsFilter A filter that adds CORS headers to each response.
   */
 @Singleton
 class Filters @Inject()(env: Environment,
-                        exampleFilter: ExampleFilter, corsFilter: CORSFilter) extends DefaultHttpFilters(corsFilter) {
-
+                        corsFilter: CustomCORSFilter) extends DefaultHttpFilters(corsFilter) {
 }
