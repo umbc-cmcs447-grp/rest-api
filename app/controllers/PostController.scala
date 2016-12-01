@@ -128,6 +128,6 @@ class PostController @Inject()(tokenManager: TokenManager,
       _ <- db.run(Posts.filter(_.postId === post.postId).delete)
     } yield NoContent
   } recover {
-    case _: NoSuchElementException => Forbidden(ErrorMessage.invalidCredentials)
+    case _: TokenAuthException => Forbidden(ErrorMessage.invalidCredentials)
   }
 }

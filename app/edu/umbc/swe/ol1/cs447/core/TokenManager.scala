@@ -24,6 +24,7 @@ class TokenManager @Inject() () {
         override def load(key: String): Agent[Option[Token]] = Agent(None)
       })
 
+  @throws[TokenAuthException]
   def authenticateRequestForUser(headers: Headers, user: String): Future[Unit] = {
     for {
       id <- authenticateRequest(headers)
@@ -33,6 +34,7 @@ class TokenManager @Inject() () {
     case _: NoSuchElementException => throw new TokenAuthException
   }
 
+  @throws[TokenAuthException]
   def authenticateRequest(headers: Headers): Future[String] = {
     for {
       authStr <- headers.get(authHeader).toFuture
