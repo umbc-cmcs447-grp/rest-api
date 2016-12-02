@@ -1,6 +1,5 @@
 package controllers
 
-import java.util.regex.Pattern
 import javax.inject.{Inject, Singleton}
 
 import com.nulabinc.zxcvbn.Zxcvbn
@@ -93,6 +92,14 @@ class UserController @Inject()(accountManager: AccountManager,
   } recover {
     case _: NoSuchElementException => Unauthorized(ErrorMessage.invalidCredentials)
   }
+
+  def validateAuth(id: String) = Action.async(parse.empty)(implicit request => {
+    for {
+      _ <- tokenManager.authenticateRequestForUser(request.headers, id.toUpperCase)
+    } yield NoContent
+  } recover {
+    case _: TokenAuthException => Forbidden(ErrorMessage.invalidCredentials)
+  })
 
   def logout(id: String) = Action.async(parse.empty)(implicit request => {
     val idUpper = id.toUpperCase

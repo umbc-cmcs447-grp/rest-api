@@ -14,17 +14,16 @@ import scala.concurrent.duration._
 
 @Singleton
 class TokenManager @Inject() () {
-  private val maxExpiryMillis = DAYS.toMillis(1)
+  private val maxExpiryMillis = DAYS.toMillis(2)
   private val authHeader = "X-NetBuz-Auth"
 
   private val cache: LoadingCache[String, Agent[Option[Token]]] =
     CacheBuilder.newBuilder()
-      .expireAfterAccess(2, HOURS)
+      .expireAfterAccess(4, HOURS)
       .build(new CacheLoader[String, Agent[Option[Token]]] {
         override def load(key: String): Agent[Option[Token]] = Agent(None)
       })
 
-  @throws[TokenAuthException]
   def authenticateRequestForUser(headers: Headers, user: String): Future[Unit] = {
     for {
       id <- authenticateRequest(headers)
@@ -34,7 +33,6 @@ class TokenManager @Inject() () {
     case _: NoSuchElementException => throw new TokenAuthException
   }
 
-  @throws[TokenAuthException]
   def authenticateRequest(headers: Headers): Future[String] = {
     for {
       authStr <- headers.get(authHeader).toFuture

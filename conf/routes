@@ -18,6 +18,7 @@ GET     /users/:id                  controllers.UserController.getInfo(id)
 POST    /users/:id/login            controllers.UserController.login(id)
 POST    /users/:id/logout           controllers.UserController.logout(id)
 PATCH   /users/:id/password         controllers.UserController.updatePassword(id)
+POST    /users/:id/auth/validate    controllers.UserController.validateAuth(id)
 
 # User routes
 
