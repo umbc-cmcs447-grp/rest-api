@@ -13,6 +13,11 @@ import slick.driver.JdbcProfile
 
 import scala.concurrent.{Future, Promise}
 
+/**
+  * A singleton for managing post IDs.
+  *
+  * @param dbConfProvider the provider for the database configuration
+  */
 @Singleton
 class IdManager @Inject()(dbConfProvider: DatabaseConfigProvider) {
   private val dbConf = dbConfProvider.get[JdbcProfile]
@@ -32,6 +37,11 @@ class IdManager @Inject()(dbConfProvider: DatabaseConfigProvider) {
     } yield bloomFilter
   }
 
+  /**
+    * Returns a [[Future]] containing a new unique post ID.
+    *
+    * @return a Future containing a new unique post ID
+    */
   def newId: Future[String] = {
     for {
       agent <- bloomFilterAgentFuture

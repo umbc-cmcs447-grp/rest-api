@@ -3,6 +3,11 @@ package models
 import slick.driver.SQLiteDriver.api._
 import slick.lifted.Tag
 
+/**
+  * Table for storing post information.
+  *
+  * @param tag the [[Tag]]
+  */
 class Posts(tag: Tag) extends Table[Post](tag, "POSTS") {
   def postId = column[String]("POST_ID", O.PrimaryKey, O.Length(Posts.postIdLengthBase64, varying = false))
   def authorId = column[String]("AUTHOR_ID", O.Length(Accounts.userIdLength, varying = false))
@@ -16,6 +21,9 @@ class Posts(tag: Tag) extends Table[Post](tag, "POSTS") {
   def * = (postId, authorId, title, body, category, status, created, lastModified) <> (Post.tupled, Post.unapply)
 }
 
+/**
+  * Table query for post information.
+  */
 object Posts extends TableQuery[Posts](new Posts(_)) {
   val postIdLengthBase64 = 12
   val postIdLengthBytes = postIdLengthBase64 / 4 * 3

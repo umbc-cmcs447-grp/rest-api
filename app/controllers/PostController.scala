@@ -14,6 +14,12 @@ import slick.driver.JdbcProfile
 
 import scala.concurrent.Future
 
+/**
+  *
+  * @param tokenManager   the [[TokenManager]]
+  * @param idManager      the [[IdManager]]
+  * @param dbConfProvider the database configuration provider
+  */
 @Singleton
 class PostController @Inject()(tokenManager: TokenManager,
                                idManager: IdManager,
@@ -29,6 +35,11 @@ class PostController @Inject()(tokenManager: TokenManager,
 
   import dbConf.driver.api._
 
+  /**
+    * Creates a new post.
+    *
+    * @return a response containing the location of the post
+    */
   def createPost = Action.async(parse.json) { implicit request =>
     request.body.validate[NewPost] match {
       case json: JsSuccess[NewPost] => createNewPost(json.get)
@@ -59,6 +70,12 @@ class PostController @Inject()(tokenManager: TokenManager,
 
   private def postLocation(postId: String)(implicit request: Request[_]): String = request.host + "/posts/" + postId
 
+  /**
+    * Gets a post.
+    *
+    * @param id the post's ID
+    * @return the post
+    */
   def getPost(id: String) = Action.async(parse.empty)(implicit request => {
     for {
       post <- db.run(Posts.withId(id))
@@ -67,6 +84,12 @@ class PostController @Inject()(tokenManager: TokenManager,
     case _: NoSuchElementException => NotFound(ErrorMessage.notFound)
   })
 
+  /**
+    * Updates a post.
+    *
+    * @param id the post's ID
+    * @return a response containing the location of the updated post
+    */
   def updatePost(id: String) = Action.async(parse.json) { implicit request =>
     request.body.validate[PostUpdate] match {
       case json: JsSuccess[PostUpdate] =>
@@ -74,7 +97,7 @@ class PostController @Inject()(tokenManager: TokenManager,
         if (update == PostUpdate.emptyUpdate) {
           Future.successful(UnprocessableEntity(ErrorMessage("Post update cannot be empty")))
         } else updatePostCheckExists(id, json.get)
-      case e: JsError => Future.successful(BadRequest(ErrorMessage.invalidBody))
+      case _: JsError => Future.successful(BadRequest(ErrorMessage.invalidBody))
     }
   }
 
@@ -106,11 +129,17 @@ class PostController @Inject()(tokenManager: TokenManager,
       lastModified = System.currentTimeMillis
     )
     for {
-      _ <- db.run(Posts.update(updatedPost))
+      _ <- db.run(Posts.filter(_.postId === post.postId).update(updatedPost))
       location = postLocation(post.postId)
     } yield Ok(ResourceLocated("Post updated", location)).withLocation(location)
   }
 
+  /**
+    * Deletes a post.
+    *
+    * @param id the post's ID
+    * @return an empty response if the post was deleted
+    */
   def deletePost(id: String) = Action.async(parse.empty)(implicit request => {
     for {
       post <- db.run(Posts.withId(id))
@@ -128,6 +157,6 @@ class PostController @Inject()(tokenManager: TokenManager,
       _ <- db.run(Posts.filter(_.postId === post.postId).delete)
     } yield NoContent
   } recover {
-    case _: NoSuchElementException => Forbidden(ErrorMessage.invalidCredentials)
+    case _: TokenAuthException => Forbidden(ErrorMessage.invalidCredentials)
   }
 }
