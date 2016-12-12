@@ -9,6 +9,13 @@ import play.filters.cors.CORSFilter
 
 import scala.concurrent.{ExecutionContext, Future}
 
+/**
+  * A custom CORS filter which allows 'null' origins.
+  *
+  * @param corsFilter the builtin CORS filter from Play2
+  * @param mat        the materializer
+  * @param exec       the execution context
+  */
 @Singleton
 class CustomCORSFilter @Inject()(corsFilter: CORSFilter)
                                 (implicit override val mat: Materializer,

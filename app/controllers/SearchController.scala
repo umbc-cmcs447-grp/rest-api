@@ -15,6 +15,12 @@ import slick.driver.JdbcProfile
 import scala.concurrent.Future
 import scala.util.Try
 
+/**
+  * Controller for endpoints starting with `/search`
+  *
+  * @param dbConfProvider the database configuration provider
+  * @param accountManager the [[AccountManager]]
+  */
 @Singleton
 class SearchController @Inject() (dbConfProvider: DatabaseConfigProvider,
                                   accountManager: AccountManager) extends CustomController {
@@ -25,6 +31,11 @@ class SearchController @Inject() (dbConfProvider: DatabaseConfigProvider,
 
   private implicit val writesPost = Json.writes[Post]
 
+  /**
+    * Search for posts matching given filters
+    *
+    * @return a list of posts
+    */
   def searchPosts = Action.async(parse.empty)(implicit request => {
     val users = seqFromQueryString("users", accountManager.isValidAccountId, mapping = _.toUpperCase)
     val categories = seqFromQueryString("categories", s => Try(Category.withName(s)).isSuccess)
